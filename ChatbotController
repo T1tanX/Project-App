@@ -1,4 +1,4 @@
-package volter.com.example.chatbot;
+package volter.com.example.appscrumteam;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -21,50 +21,315 @@ public class ChatbotController {
     @FXML
     private Button clearButton;
 
+    @FXML
+    private Button epicButton;
+
+    @FXML
+    private Button showEpicButton;
+
+    @FXML
+    private Button returnButton; // Return button to go back to chatbot mode
+
+    @FXML
+    private Button sendEpicButton;// Send Epic Button
+
+    @FXML
+    private Button deleteAllButton;
 
     private Connection connection;
+    private String currentEpic;
+    private String currentUserStory;
+    private int currentStep = 0; // To track the step (0 = Epic, 1 = User Story, 2 = Task)
+    private boolean isEpicCreationMode = false; // Flag to check if in epic creation mode
 
     @FXML
     public void initialize() {
-        String url="jdbc:mysql://localhost:3306/chatbotdb";
-        String user="root";
-        String password="24074209190344";
+        String url = "jdbc:mysql://localhost:3306/chatbotdb";
+        String user = "root";
+        String password = "24074209190344";
 
         try {
-            connection = DriverManager.getConnection(url,user,password);
+            connection = DriverManager.getConnection(url, user, password);
         } catch (SQLException e) {
             e.printStackTrace();
             chatArea.appendText("Error: Could not connect to database.\n");
         }
 
         sendButton.setOnAction(e -> handleSend());
+        epicButton.setOnAction(e -> startEpicCreation());
+        clearButton.setOnAction(e -> chatArea.clear());
+        showEpicButton.setOnAction(event -> handleShowEpics());
+        returnButton.setOnAction(e -> returnToChatbot());
+
+        // Enable sendEpicButton in epic creation mode and disable it in chatbot mode
+        sendEpicButton.setDisable(true); // Initially disable sendEpicButton
     }
 
-    private void handleSend() {
-        String keyword = userInput.getText().toLowerCase();
-        String response = findResponse(keyword);
+    @FXML
+    private void handleDeleteAll() {
+        try {
+            // Start by deleting all tasks
+            String deleteTasksQuery = "DELETE FROM chatbotdb.tasks";
+            try (PreparedStatement stmt = connection.prepareStatement(deleteTasksQuery)) {
+                stmt.executeUpdate();
+            }
 
-        chatArea.appendText("You: " + keyword + "\n");
-        chatArea.appendText("Bot: " + response + "\n\n");
-        chatArea.setScrollTop(Double.MAX_VALUE);
-        clearButton.setOnAction(e -> chatArea.clear());
+            // Then delete all user stories
+            String deleteUserStoriesQuery = "DELETE FROM chatbotdb.user_stories";
+            try (PreparedStatement stmt = connection.prepareStatement(deleteUserStoriesQuery)) {
+                stmt.executeUpdate();
+            }
+
+            // Finally, delete all epics
+            String deleteEpicsQuery = "DELETE FROM chatbotdb.epics";
+            try (PreparedStatement stmt = connection.prepareStatement(deleteEpicsQuery)) {
+                stmt.executeUpdate();
+            }
+
+            // Notify the user in chatArea
+            chatArea.appendText("[All epics, user stories, and tasks have been deleted.]\n");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            chatArea.appendText("[Error deleting data.]\n");
+        }
+    }
+
+    @FXML
+    private void startEpicCreation() {
+        isEpicCreationMode = true;
+        currentStep = 0; // Reset the step to Epic
+        chatArea.appendText("------Create an Epic.------\n");
+
+        // Disable chatbot buttons and switch to epic creation
+        sendButton.setDisable(true); // Disable send button in epic creation mode
+        clearButton.setDisable(true); // Disable clear button in epic creation mode
+        epicButton.setDisable(true); // Disable epic button in epic creation mode
+        showEpicButton.setDisable(true); // Disable show epic button in epic creation mode
+        returnButton.setDisable(false); // Allow return to chatbot mode
+        sendEpicButton.setDisable(false); // Enable sendEpicButton in epic creation mode
         userInput.clear();
     }
 
-    private String findResponse(String keyword) {
-        String query = "SELECT response FROM chatbot WHERE keyword = ?";
-        try {
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, keyword);
-            ResultSet result = statement.executeQuery();
+    private void returnToChatbot() {
+        isEpicCreationMode = false;
+        currentStep = 0;
 
-            if (result.next()) {
-                return result.getString("response");
-            }
-        } catch (SQLException e) {
-            e.getMessage();
+        chatArea.appendText("[Returning to chatbot mode...]\n");
+
+        // Re-enable chatbot buttons
+        sendButton.setDisable(false);
+        clearButton.setDisable(false);
+        epicButton.setDisable(false); // Re-enable the epic button
+        showEpicButton.setDisable(false); // Re-enable the show epic button
+        returnButton.setDisable(true); // Disable the return button
+        sendEpicButton.setDisable(true); // Disable sendEpicButton when returning to chatbot mode
+        userInput.clear();
+    }
+
+    @FXML
+    private void sendEpic() {
+        String input = userInput.getText().trim();
+        if (input.isEmpty()) {
+            chatArea.appendText("------Create an Epic.------\n");
+            return;
         }
 
-        return "I think you typed a wrong keyword.";
+        switch (currentStep) {
+            case 0: // Epic
+                currentEpic = input;
+                storeEpic(currentEpic);
+                chatArea.appendText("Epic: " + currentEpic + "\n");
+                chatArea.appendText("\n");
+                chatArea.appendText("---Create a User Story.---\n");
+                currentStep = 1;
+                break;
+
+            case 1: // User Story
+                currentUserStory = input;
+                storeUserStory(currentEpic, currentUserStory);
+                chatArea.appendText("UserStory: " + currentUserStory + "\n");
+                chatArea.appendText("\n");
+                chatArea.appendText("------Create a Task.------\n");
+                currentStep = 2;
+                break;
+
+            case 2: // Task
+                storeTask(currentUserStory, input);
+                chatArea.appendText("Task: " + input + "\n");
+                chatArea.appendText("[Epic, User Story, and Task successfully created!]\n");
+                returnToChatbot();
+                break;
+        }
+
+        userInput.clear();
+    }
+
+    private void handleSend() {
+        String userInputText = userInput.getText().trim();
+
+        if (userInputText.isEmpty()) {
+            return;
+        }
+
+        // Handle epic creation mode first
+        if (isEpicCreationMode) {
+            switch (currentStep) {
+                case 1: // User Story step
+                    currentUserStory = userInputText;
+                    storeUserStory(currentEpic, currentUserStory);
+                    chatArea.appendText("You: " + currentUserStory + "\n");
+                    chatArea.appendText("Bot: Now, provide the Task.\n");
+                    currentStep = 2; // Move to the next step (Task step)
+                    break;
+                case 2: // Task step
+                    storeTask(currentUserStory, userInputText);
+                    chatArea.appendText("You: " + userInputText + "\n");
+                    chatArea.appendText("[Epic, User Story, and Task successfully created!]\n");
+                    returnToChatbot(); // Return to chatbot after task creation
+                    break;
+            }
+
+            userInput.clear();
+            chatArea.setScrollTop(Double.MAX_VALUE); // Scroll to the bottom
+            return; // Skip chatbot logic when in epic creation mode
+        }
+
+        // Regular chatbot logic (only reached if NOT in epic creation mode)
+        String response = getResponse(userInputText);
+
+        if (response != null) {
+            chatArea.appendText("You: " + userInputText + "\n");
+            chatArea.appendText("Bot: " + response + "\n");
+        } else {
+            chatArea.appendText("Bot: I don't understand that.\n");
+        }
+
+        userInput.clear();
+        chatArea.setScrollTop(Double.MAX_VALUE);
+    }
+
+    private String getResponse(String keyword) {
+        String response = null;
+
+        String query = "SELECT response FROM chatbot WHERE keyword = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, keyword);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                response = rs.getString("response");
+            }
+        } catch (SQLException e) {
+            System.out.println("Database error: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    private void storeEpic(String epicDescription) {
+        String query = "INSERT INTO chatbotdb.epics (description) VALUES (?)"; // Updated table name
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, epicDescription);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void storeUserStory(String epicDescription, String storyDescription) {
+        try {
+            String query = "SELECT id FROM chatbotdb.epics WHERE description = ?"; // Updated table name
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setString(1, epicDescription);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int epicId = rs.getInt("id");
+
+                        String insert = "INSERT INTO chatbotdb.user_stories (epic_id, description) VALUES (?, ?)"; // Updated table name
+                        try (PreparedStatement insertStmt = connection.prepareStatement(insert)) {
+                            insertStmt.setInt(1, epicId);
+                            insertStmt.setString(2, storyDescription);
+                            insertStmt.executeUpdate();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void storeTask(String storyDescription, String taskDescription) {
+        try {
+            String query = "SELECT id FROM chatbotdb.user_stories WHERE description = ?"; // Updated table name
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setString(1, storyDescription);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int storyId = rs.getInt("id");
+
+                        String insert = "INSERT INTO chatbotdb.tasks (story_id, description) VALUES (?, ?)"; // Updated table name
+                        try (PreparedStatement insertStmt = connection.prepareStatement(insert)) {
+                            insertStmt.setInt(1, storyId);
+                            insertStmt.setString(2, taskDescription);
+                            insertStmt.executeUpdate();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleShowEpics() {
+        StringBuilder output = new StringBuilder();
+
+        try {
+            // Get all epics
+            String epicQuery = "SELECT * FROM chatbotdb.epics";
+            try (PreparedStatement epicStmt = connection.prepareStatement(epicQuery);
+                 ResultSet epics = epicStmt.executeQuery()) {
+
+                while (epics.next()) {
+                    int epicId = epics.getInt("id");
+                    String epicDesc = epics.getString("description");
+                    output.append("\n");
+                    output.append("📘 Epic: ").append(epicDesc).append("\n");
+
+                    // Get user stories for the epic
+                    String storyQuery = "SELECT * FROM chatbotdb.user_stories WHERE epic_id = ?";
+                    try (PreparedStatement storyStmt = connection.prepareStatement(storyQuery)) {
+                        storyStmt.setInt(1, epicId);
+                        try (ResultSet stories = storyStmt.executeQuery()) {
+                            while (stories.next()) {
+                                int storyId = stories.getInt("id");
+                                String storyDesc = stories.getString("description");
+                                output.append("📗 User Story: ").append(storyDesc).append("\n");
+
+                                // Get tasks for the story
+                                String taskQuery = "SELECT * FROM chatbotdb.tasks WHERE story_id = ?";
+                                try (PreparedStatement taskStmt = connection.prepareStatement(taskQuery)) {
+                                    taskStmt.setInt(1, storyId);
+                                    try (ResultSet tasks = taskStmt.executeQuery()) {
+                                        while (tasks.next()) {
+                                            String taskDesc = tasks.getString("description");
+                                            output.append("📒 Task: ").append(taskDesc).append("\n");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            output.append("⚠️ Error loading epics: ").append(e.getMessage()).append("\n");
+            e.printStackTrace();
+        }
+
+        chatArea.appendText(output.toString() + "\n");
     }
 }
