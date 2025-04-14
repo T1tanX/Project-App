@@ -1,0 +1,52 @@
+CREATE DATABASE chatbotdb;
+
+USE chatbotdb;
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    story_id INT,
+    description VARCHAR(255),
+    FOREIGN KEY (story_id) REFERENCES user_stories(id)
+);
+
+CREATE TABLE chatbot (
+    keyword VARCHAR(100),
+    response VARCHAR(255)
+);
+
+CREATE TABLE chatbotdb.epics (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    description VARCHAR(255)
+);
+
+CREATE TABLE chatbotdb.user_stories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    epic_id INT,
+    description VARCHAR(255),
+    FOREIGN KEY (epic_id) REFERENCES epics(id)
+);
+
+CREATE TABLE chatbotdb.tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    story_id INT,
+    description VARCHAR(255),
+    FOREIGN KEY (story_id) REFERENCES user_stories(id)
+);
+
+
+INSERT INTO epics (description) VALUES ('Epic 1 description');
+INSERT INTO user_stories (epic_id, description) VALUES (1, 'User Story 1 description');
+INSERT INTO tasks (story_id, description) VALUES (1, 'Task 1 description');
+
+INSERT INTO chatbot (keyword, response) VALUES
+('hello', 'Hi there! How can I help you?'),
+('hi', 'Hello! What can I do for you?'),
+('hey', 'Hey! Need anything?'),
+('bye', 'Goodbye! Have a nice day.'),
+('goodbye', 'See you later!'),
+('how are you', 'I am just a program, but I am running well!'),
+('what is your name', 'I am your friendly chatbot.'),
+('who made you', 'I was created by a human developer.'),
+('thank you', 'You are welcome!'),
+('thanks', 'Anytime!'),
+('what is an epic', 'An epic is a large body of work that can be broken down into smaller tasks called "user stories".');
