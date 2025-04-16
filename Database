@@ -1,6 +1,12 @@
 CREATE DATABASE chatbotdb;
 
 USE chatbotdb;
+SHOW TABLES;
+SET SQL_SAFE_UPDATES = 0;
+
+SELECT emailadress, username, pword FROM chatbotdb.login;
+DELETE FROM login WHERE emailadress = 'lol1';
+
 
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -9,10 +15,18 @@ CREATE TABLE IF NOT EXISTS tasks (
     FOREIGN KEY (story_id) REFERENCES user_stories(id)
 );
 
+DROP TABLE IF EXISTS login;
+
 CREATE TABLE chatbot (
     keyword VARCHAR(100),
     response VARCHAR(255)
 );
+
+CREATE TABLE chatbotdb.login (
+    emailadress VARCHAR(100),
+    username VARCHAR(255),
+    pword VARCHAR(100)
+); 
 
 CREATE TABLE chatbotdb.epics (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,7 +47,6 @@ CREATE TABLE chatbotdb.tasks (
     FOREIGN KEY (story_id) REFERENCES user_stories(id)
 );
 
-
 INSERT INTO epics (description) VALUES ('Epic 1 description');
 INSERT INTO user_stories (epic_id, description) VALUES (1, 'User Story 1 description');
 INSERT INTO tasks (story_id, description) VALUES (1, 'Task 1 description');
@@ -50,3 +63,6 @@ INSERT INTO chatbot (keyword, response) VALUES
 ('thank you', 'You are welcome!'),
 ('thanks', 'Anytime!'),
 ('what is an epic', 'An epic is a large body of work that can be broken down into smaller tasks called "user stories".');
+
+INSERT INTO chatbotdb.login (emailadress, username, pword) VALUES
+('Khalid', 'piramide', 'ladiesman217');
