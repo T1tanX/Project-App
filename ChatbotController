@@ -28,10 +28,10 @@ public class ChatbotController {
     private Button showEpicButton;
 
     @FXML
-    private Button returnButton; // Return button to go back to chatbot mode
+    private Button returnButton;
 
     @FXML
-    private Button sendEpicButton;// Send Epic Button
+    private Button sendEpicButton;
 
     @FXML
     private Button deleteAllButton;
@@ -39,8 +39,8 @@ public class ChatbotController {
     private Connection connection;
     private String currentEpic;
     private String currentUserStory;
-    private int currentStep = 0; // To track the step (0 = Epic, 1 = User Story, 2 = Task)
-    private boolean isEpicCreationMode = false; // Flag to check if in epic creation mode
+    private int currentStep = 0;
+    private boolean isEpicCreationMode = false;
 
     @FXML
     public void initialize() {
@@ -61,32 +61,27 @@ public class ChatbotController {
         showEpicButton.setOnAction(event -> handleShowEpics());
         returnButton.setOnAction(e -> returnToChatbot());
 
-        // Enable sendEpicButton in epic creation mode and disable it in chatbot mode
-        sendEpicButton.setDisable(true); // Initially disable sendEpicButton
+        sendEpicButton.setDisable(true);
     }
 
     @FXML
     private void handleDeleteAll() {
         try {
-            // Start by deleting all tasks
             String deleteTasksQuery = "DELETE FROM chatbotdb.tasks";
             try (PreparedStatement stmt = connection.prepareStatement(deleteTasksQuery)) {
                 stmt.executeUpdate();
             }
 
-            // Then delete all user stories
             String deleteUserStoriesQuery = "DELETE FROM chatbotdb.user_stories";
             try (PreparedStatement stmt = connection.prepareStatement(deleteUserStoriesQuery)) {
                 stmt.executeUpdate();
             }
 
-            // Finally, delete all epics
             String deleteEpicsQuery = "DELETE FROM chatbotdb.epics";
             try (PreparedStatement stmt = connection.prepareStatement(deleteEpicsQuery)) {
                 stmt.executeUpdate();
             }
 
-            // Notify the user in chatArea
             chatArea.appendText("[All epics, user stories, and tasks have been deleted.]\n");
 
         } catch (SQLException e) {
@@ -98,16 +93,15 @@ public class ChatbotController {
     @FXML
     private void startEpicCreation() {
         isEpicCreationMode = true;
-        currentStep = 0; // Reset the step to Epic
+        currentStep = 0;
         chatArea.appendText("------Create an Epic.------\n");
 
-        // Disable chatbot buttons and switch to epic creation
-        sendButton.setDisable(true); // Disable send button in epic creation mode
-        clearButton.setDisable(true); // Disable clear button in epic creation mode
-        epicButton.setDisable(true); // Disable epic button in epic creation mode
-        showEpicButton.setDisable(true); // Disable show epic button in epic creation mode
-        returnButton.setDisable(false); // Allow return to chatbot mode
-        sendEpicButton.setDisable(false); // Enable sendEpicButton in epic creation mode
+        sendButton.setDisable(true);
+        clearButton.setDisable(true);
+        epicButton.setDisable(true);
+        showEpicButton.setDisable(true);
+        returnButton.setDisable(false);
+        sendEpicButton.setDisable(false);
         userInput.clear();
     }
 
@@ -117,13 +111,12 @@ public class ChatbotController {
 
         chatArea.appendText("[Returning to chatbot mode...]\n");
 
-        // Re-enable chatbot buttons
         sendButton.setDisable(false);
         clearButton.setDisable(false);
-        epicButton.setDisable(false); // Re-enable the epic button
-        showEpicButton.setDisable(false); // Re-enable the show epic button
-        returnButton.setDisable(true); // Disable the return button
-        sendEpicButton.setDisable(true); // Disable sendEpicButton when returning to chatbot mode
+        epicButton.setDisable(false);
+        showEpicButton.setDisable(false);
+        returnButton.setDisable(true);
+        sendEpicButton.setDisable(true);
         userInput.clear();
     }
 
@@ -136,7 +129,7 @@ public class ChatbotController {
         }
 
         switch (currentStep) {
-            case 0: // Epic
+            case 0:
                 currentEpic = input;
                 storeEpic(currentEpic);
                 chatArea.appendText("Epic: " + currentEpic + "\n");
@@ -145,7 +138,7 @@ public class ChatbotController {
                 currentStep = 1;
                 break;
 
-            case 1: // User Story
+            case 1:
                 currentUserStory = input;
                 storeUserStory(currentEpic, currentUserStory);
                 chatArea.appendText("UserStory: " + currentUserStory + "\n");
@@ -154,7 +147,7 @@ public class ChatbotController {
                 currentStep = 2;
                 break;
 
-            case 2: // Task
+            case 2:
                 storeTask(currentUserStory, input);
                 chatArea.appendText("Task: " + input + "\n");
                 chatArea.appendText("[Epic, User Story, and Task successfully created!]\n");
@@ -172,30 +165,28 @@ public class ChatbotController {
             return;
         }
 
-        // Handle epic creation mode first
         if (isEpicCreationMode) {
             switch (currentStep) {
-                case 1: // User Story step
+                case 1:
                     currentUserStory = userInputText;
                     storeUserStory(currentEpic, currentUserStory);
                     chatArea.appendText("You: " + currentUserStory + "\n");
                     chatArea.appendText("Bot: Now, provide the Task.\n");
-                    currentStep = 2; // Move to the next step (Task step)
+                    currentStep = 2;
                     break;
-                case 2: // Task step
+                case 2:
                     storeTask(currentUserStory, userInputText);
                     chatArea.appendText("You: " + userInputText + "\n");
                     chatArea.appendText("[Epic, User Story, and Task successfully created!]\n");
-                    returnToChatbot(); // Return to chatbot after task creation
+                    returnToChatbot();
                     break;
             }
 
             userInput.clear();
-            chatArea.setScrollTop(Double.MAX_VALUE); // Scroll to the bottom
-            return; // Skip chatbot logic when in epic creation mode
+            chatArea.setScrollTop(Double.MAX_VALUE);
+            return;
         }
 
-        // Regular chatbot logic (only reached if NOT in epic creation mode)
         String response = getResponse(userInputText);
 
         if (response != null) {
@@ -228,7 +219,7 @@ public class ChatbotController {
     }
 
     private void storeEpic(String epicDescription) {
-        String query = "INSERT INTO chatbotdb.epics (description) VALUES (?)"; // Updated table name
+        String query = "INSERT INTO chatbotdb.epics (description) VALUES (?)";
         try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, epicDescription);
             statement.executeUpdate();
@@ -239,14 +230,14 @@ public class ChatbotController {
 
     private void storeUserStory(String epicDescription, String storyDescription) {
         try {
-            String query = "SELECT id FROM chatbotdb.epics WHERE description = ?"; // Updated table name
+            String query = "SELECT id FROM chatbotdb.epics WHERE description = ?";
             try (PreparedStatement stmt = connection.prepareStatement(query)) {
                 stmt.setString(1, epicDescription);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         int epicId = rs.getInt("id");
 
-                        String insert = "INSERT INTO chatbotdb.user_stories (epic_id, description) VALUES (?, ?)"; // Updated table name
+                        String insert = "INSERT INTO chatbotdb.user_stories (epic_id, description) VALUES (?, ?)";
                         try (PreparedStatement insertStmt = connection.prepareStatement(insert)) {
                             insertStmt.setInt(1, epicId);
                             insertStmt.setString(2, storyDescription);
@@ -288,7 +279,6 @@ public class ChatbotController {
         StringBuilder output = new StringBuilder();
 
         try {
-            // Get all epics
             String epicQuery = "SELECT * FROM chatbotdb.epics";
             try (PreparedStatement epicStmt = connection.prepareStatement(epicQuery);
                  ResultSet epics = epicStmt.executeQuery()) {
@@ -299,7 +289,6 @@ public class ChatbotController {
                     output.append("\n");
                     output.append("📘 Epic: ").append(epicDesc).append("\n");
 
-                    // Get user stories for the epic
                     String storyQuery = "SELECT * FROM chatbotdb.user_stories WHERE epic_id = ?";
                     try (PreparedStatement storyStmt = connection.prepareStatement(storyQuery)) {
                         storyStmt.setInt(1, epicId);
@@ -309,7 +298,6 @@ public class ChatbotController {
                                 String storyDesc = stories.getString("description");
                                 output.append("📗 User Story: ").append(storyDesc).append("\n");
 
-                                // Get tasks for the story
                                 String taskQuery = "SELECT * FROM chatbotdb.tasks WHERE story_id = ?";
                                 try (PreparedStatement taskStmt = connection.prepareStatement(taskQuery)) {
                                     taskStmt.setInt(1, storyId);
