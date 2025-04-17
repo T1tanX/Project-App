@@ -1,4 +1,4 @@
-package volter.com.example.chatbot;
+package volter.com.example.appscrumteam;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -6,7 +6,9 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.scene.Parent;
 
+import java.sql.*;
 import java.util.Objects;
+import java.util.Scanner;
 
 public class Main extends Application {
 
@@ -20,6 +22,99 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) {
+        Scanner scanner= new Scanner(System.in);
+        String Email;
+        String User;
+        String Password;
+
+        while(true) {
+            System.out.print("Login/Register: ");
+            String answer1= scanner.nextLine().toLowerCase();
+
+            switch (answer1) {
+                case "login":
+                    System.out.print("Enter Email: ");
+                    Email = scanner.nextLine();
+                    System.out.print("Enter Username: ");
+                    User = scanner.nextLine();
+                    System.out.print("Enter password: ");
+                    Password = scanner.nextLine();
+                    System.out.println();
+
+                    String StoredPassword = loginlogin(Email, User);
+
+                    if (Password.equals(StoredPassword)) {
+                        System.out.println("[Login successful]");
+                        break;
+                    }else{
+                        System.out.println("[Account doesn't exist, try again]");
+                        continue;
+                    }
+                case "register":
+                    System.out.print("Enter Email: ");
+                    Email = scanner.nextLine();
+                    System.out.print("Enter Username: ");
+                    User = scanner.nextLine();
+                    System.out.print("Enter password: ");
+                    Password = scanner.nextLine();
+                    System.out.println();
+
+                    register(Email, User, Password);
+                    continue;
+                default:
+                    continue;
+            }
+            break;
+        }
         launch(args);
+    }
+
+    public static void register(String emailx, String userx, String pwordx){
+        String url = "jdbc:mysql://localhost:3306/chatbotdb";
+        String user = "root";
+        String password = "24074209190344";
+
+        try (Connection connection = DriverManager.getConnection(url, user, password)) {
+            String query = "INSERT INTO login (emailadress, username, pword) VALUES (?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+
+            statement.setString(1, emailx);
+            statement.setString(2, userx);
+            statement.setString(3,pwordx);
+            int result= statement.executeUpdate();
+
+            if(result > 0) {
+                System.out.println("[Registration successful, you can now login]");
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static String loginlogin(String emailx, String userx){
+        String url = "jdbc:mysql://localhost:3306/chatbotdb";
+        String user = "root";
+        String password = "24074209190344";
+        String pword = null;
+
+        try (Connection connection = DriverManager.getConnection(url, user, password)) {
+            String query = "SELECT pword FROM chatbotdb.login WHERE emailadress = ? AND username = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+
+            statement.setString(1, emailx);
+            statement.setString(2, userx);
+            ResultSet result = statement.executeQuery();
+
+            if (result.next()) {
+                pword = result.getString("pword");
+            } else {
+                System.out.println("[No match found]");
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return pword;
     }
 }
