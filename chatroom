@@ -1,0 +1,193 @@
+package volter.com.example.appscrumteam;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
+
+import javafx.event.ActionEvent;
+import java.sql.*;
+
+public class Chatroom{
+
+    @FXML
+    private TextArea chatArea;
+
+    @FXML
+    private TextField Input2Field;
+
+    @FXML
+    private Button SendButton;
+
+    @FXML
+    private Button deleteMessageButton;
+
+    @FXML
+    private Button showTrioButton;
+
+    @FXML
+    private Button Switch2Button;
+
+    private final String URL = "jdbc:mysql://localhost:3306/chatbotdb";
+    private final String USER = "root";
+    private final String PASSWORD = "24074209190344";
+
+    @FXML
+    public void initialize() {
+        loadMessages();
+        SendButton.setOnAction(e -> sendMessage());
+        deleteMessageButton.setOnAction(e -> deleteAllMessages());
+        showTrioButton.setOnAction(e -> handleShowTrio());
+    }
+
+    @FXML
+    private void handleShowTrio() {
+        StringBuilder trioMessage = new StringBuilder();
+        String epicDesc = "";
+        String storyDesc = "";
+        String taskDesc = "";
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            String epicQuery = "SELECT * FROM chatbotdb.epics";
+            try (PreparedStatement epicStmt = conn.prepareStatement(epicQuery);
+                 ResultSet epics = epicStmt.executeQuery()) {
+
+                while (epics.next()) {
+                    int epicId = epics.getInt("id");
+                    epicDesc = epics.getString("description");
+                    trioMessage.append("📘 Epic: ").append(epicDesc).append("\n");
+
+                    String storyQuery = "SELECT * FROM chatbotdb.user_stories WHERE epic_id = ?";
+                    try (PreparedStatement storyStmt = conn.prepareStatement(storyQuery)) {
+                        storyStmt.setInt(1, epicId);
+                        try (ResultSet stories = storyStmt.executeQuery()) {
+                            while (stories.next()) {
+                                int storyId = stories.getInt("id");
+                                storyDesc = stories.getString("description");
+                                trioMessage.append("📗 User Story: ").append(storyDesc).append("\n");
+
+                                String taskQuery = "SELECT * FROM chatbotdb.tasks WHERE story_id = ?";
+                                try (PreparedStatement taskStmt = conn.prepareStatement(taskQuery)) {
+                                    taskStmt.setInt(1, storyId);
+                                    try (ResultSet tasks = taskStmt.executeQuery()) {
+                                        while (tasks.next()) {
+                                            taskDesc = tasks.getString("description");
+                                            trioMessage.append("📒 Task: ").append(taskDesc).append("\n");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break; // Only show the first trio
+                }
+            }
+
+            // Insert the trio into chat
+            String insertChatSql = "INSERT INTO chat (message) VALUES (?)";
+            try (PreparedStatement insertChatStmt = conn.prepareStatement(insertChatSql)) {
+                insertChatStmt.setString(1, trioMessage.toString());
+                insertChatStmt.executeUpdate();
+            }
+
+            String insertTrioSql = "INSERT INTO epic_user_story_task_trios (epic_description, user_story_description, task_description) VALUES (?, ?, ?)";
+            try (PreparedStatement insertTrioStmt = conn.prepareStatement(insertTrioSql)) {
+                insertTrioStmt.setString(1, epicDesc);
+                insertTrioStmt.setString(2, storyDesc);
+                insertTrioStmt.setString(3, taskDesc);
+                insertTrioStmt.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            trioMessage.append("⚠️ Error loading trio: ").append(e.getMessage()).append("\n");
+            e.printStackTrace();
+        }
+
+        loadMessages();
+    }
+
+
+
+
+
+    @FXML
+    private void SwitchScreen(ActionEvent event) {
+        try {
+            Parent newRoot = FXMLLoader.load(getClass().getResource("chatbot.fxml"));
+            Scene newScene = new Scene(newRoot);
+
+            Stage currentStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            currentStage.setScene(newScene);
+            currentStage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMessage() {
+        String message = Input2Field.getText().trim();
+
+        if (message.isEmpty()) return;
+
+        StringBuilder messageWithTrio = new StringBuilder();
+
+        // Only append "You: " and the message when sending a normal message
+        messageWithTrio.append("You: ").append(message);
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            String sql = "INSERT INTO chat (message) VALUES (?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, messageWithTrio.toString());
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        Input2Field.clear();
+        loadMessages();
+    }
+
+
+    private void loadMessages() {
+        chatArea.clear();
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            String sql = "SELECT message FROM chat ORDER BY id ASC";
+            try (PreparedStatement stmt = conn.prepareStatement(sql);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    chatArea.appendText(rs.getString("message") + "\n");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    @FXML
+    private void deleteAllMessages() {
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            String sql = "DELETE FROM chat";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.executeUpdate();
+            }
+
+            String deleteTrioQuery = "DELETE FROM epic_user_story_task_trios";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteTrioQuery)) {
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        chatArea.clear();
+    }
+}
+
