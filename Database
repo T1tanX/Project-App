@@ -5,8 +5,7 @@ SHOW TABLES;
 SET SQL_SAFE_UPDATES = 0;
 
 SELECT emailadress, username, pword FROM chatbotdb.login;
-DELETE FROM login WHERE emailadress = 'lol1';
-
+DELETE FROM login WHERE emailadress = 'lol';
 
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -20,6 +19,20 @@ DROP TABLE IF EXISTS login;
 CREATE TABLE chatbot (
     keyword VARCHAR(100),
     response VARCHAR(255)
+);
+
+DROP TABLE IF EXISTS chatbotdb.chat;
+
+CREATE TABLE chatbotdb.chat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    message TEXT
+);
+
+CREATE TABLE chatbotdb.epic_user_story_task_trios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    epic_description TEXT,
+    user_story_description TEXT,
+    task_description TEXT
 );
 
 CREATE TABLE chatbotdb.login (
