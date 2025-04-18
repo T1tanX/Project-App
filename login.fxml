@@ -4,8 +4,9 @@
 <?import javafx.scene.effect.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane prefHeight="480.0" prefWidth="320.0" style="-fx-background-color: linear-gradient(to bottom right, #0e0e0e, #1a1a1a);" xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="volter.com.example.app.loginController">
+<AnchorPane prefHeight="480.0" prefWidth="320.0" style="-fx-background-color: linear-gradient(to bottom right, #0e0e0e, #1a1a1a);" xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="volter.com.example.appscrumteam.Authenticate">
 
     <children>
 
@@ -28,25 +29,41 @@
             <children>
                 <AnchorPane>
 
-                    <!-- Chat display -->
-                    <TextArea fx:id="chatArea" editable="false" layoutX="10.0" layoutY="14.0" prefHeight="268.0" prefWidth="260.0" style="-fx-control-inner-background: black; -fx-text-fill: white; -fx-prompt-text-fill: #888; -fx-border-color: #00e5ff; -fx-border-radius: 5;">
-                        <effect>
-                            <DropShadow color="#00e5ff" radius="10" spread="0.3" />
-                        </effect>
-                    </TextArea>
-
                     <!-- Input -->
-                    <TextField fx:id="userInput" layoutX="10.0" layoutY="297.0" prefWidth="260.0" promptText="Type something..." style="-fx-control-inner-background: black; -fx-text-fill: white; -fx-prompt-text-fill: #888; -fx-border-color: #00e5ff; -fx-border-radius: 5;">
+                    <TextField fx:id="PwordField" layoutX="10.0" layoutY="286.0" prefWidth="260.0" promptText="Password..." style="-fx-control-inner-background: black; -fx-text-fill: white; -fx-prompt-text-fill: #888; -fx-border-color: #00e5ff; -fx-border-radius: 5;" AnchorPane.bottomAnchor="120.0">
                         <effect>
                             <DropShadow color="#00e5ff" radius="10" spread="0.3" />
                         </effect>
                     </TextField>
-
-                    <!-- Buttons -->
-                    <Button fx:id="sendButton" layoutX="190.0" layoutY="335.0" prefHeight="30.0" prefWidth="80.0" style="-fx-border-radius: 15; -fx-border-color: #00e5ff; -fx-border-width: 2; -fx-background-color: transparent; -fx-effect: dropshadow(three-pass-box, #00e5ff, 10, 0, 0, 0);" text="🞂" textFill="#00e5ff" AnchorPane.leftAnchor="190.0" AnchorPane.rightAnchor="10.0" />
-
-                    <Button fx:id="clearButton" layoutX="10.0" layoutY="335.0" prefHeight="30.0" prefWidth="170.0" style="-fx-border-radius: 15; -fx-border-color: #00e5ff; -fx-border-width: 2; -fx-background-color: transparent; -fx-effect: dropshadow(three-pass-box, #00e5ff, 10, 0, 0, 0);" text="Clear Chat" textFill="#00e5ff" AnchorPane.leftAnchor="10.0" />
-               <Button fx:id="switch1Button" layoutX="44.0" layoutY="395.0" prefHeight="30.0" prefWidth="191.0" style="-fx-border-radius: 15; -fx-border-color: #BC13FE; -fx-border-width: 2; -fx-background-color: transparent; -fx-effect: dropshadow(three-pass-box, #BC13FE, 10, 0, 0, 0);" text="Register/Login" textFill="#BC13FE" />
+                    <Button fx:id="RegisterButton" layoutX="14.0" layoutY="369.0" prefHeight="30.0" prefWidth="111.0" style="-fx-border-radius: 15; -fx-border-color: #BC13FE; -fx-border-width: 2; -fx-background-color: transparent; -fx-effect: dropshadow(three-pass-box, #BC13FE, 10, 0, 0, 0);" text="Register" textFill="#BC13FE" />
+                    <TextField fx:id="UsernameField" layoutX="10.0" layoutY="239.0" prefWidth="260.0" promptText="Username..." style="-fx-control-inner-background: black; -fx-text-fill: white; -fx-prompt-text-fill: #888; -fx-border-color: #00e5ff; -fx-border-radius: 5;" AnchorPane.bottomAnchor="220.0">
+                        <effect>
+                            <DropShadow color="#00e5ff" radius="10" spread="0.3" />
+                        </effect>
+                    </TextField>
+                    <TextField fx:id="EmailField" layoutX="10.0" layoutY="192.0" prefWidth="260.0" promptText="Email..." style="-fx-control-inner-background: black; -fx-text-fill: white; -fx-prompt-text-fill: #888; -fx-border-color: #00e5ff; -fx-border-radius: 5;" AnchorPane.bottomAnchor="170.0">
+                        <effect>
+                            <DropShadow color="#00e5ff" radius="10" spread="0.3" />
+                        </effect>
+                    </TextField>
+                    <Button fx:id="LoginButton" layoutX="154.0" layoutY="369.0" prefHeight="30.0" prefWidth="111.0" style="-fx-border-radius: 15; -fx-border-color: #BC13FE; -fx-border-width: 2; -fx-background-color: transparent; -fx-effect: dropshadow(three-pass-box, #BC13FE, 10, 0, 0, 0);" text="Login" textFill="#BC13FE" />
+                    <Text fill="#00e5ff" layoutX="69.0" layoutY="169.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Register/Login">
+                        <font>
+                            <Font size="22.0" />
+                        </font></Text>
+                    <Circle layoutX="140.0" layoutY="77.0" radius="53.0" stroke="#00e5ff" strokeWidth="2.0">
+                        <effect>
+                            <DropShadow color="#00e5ff" radius="20" spread="0.6" />
+                        </effect>
+                    </Circle>
+                    <Text layoutX="107.0" layoutY="104.0" strokeType="OUTSIDE" strokeWidth="0.0" text="👤">
+                        <font>
+                            <Font size="67.0" />
+                        </font>
+                        <effect>
+                            <DropShadow color="#BC13FE" radius="15" spread="0.5" />
+                        </effect>
+                    </Text>
                 </AnchorPane>
             </children>
         </StackPane>
