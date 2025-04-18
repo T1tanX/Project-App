@@ -1,4 +1,3 @@
-
 package volter.com.example.appscrumteam;
 
 import javafx.fxml.FXML;
@@ -23,7 +22,7 @@ public class Authenticate {
 
     @FXML
     private void initialize() {
-        switchToRegisterMode(); 
+        switchToRegisterMode();
         setupButtonListeners();
     }
 
@@ -43,13 +42,13 @@ public class Authenticate {
                 switchToLoginMode();
                 showAlert("✅ Successfully registered! You can now login.");
             } else {
-                switchToRegisterMode(); // Switch back to register mode
+                switchToRegisterMode();
             }
         });
 
         LoginButton.setOnAction(event -> {
             if (isRegisterMode) {
-                switchToLoginMode(); // Switch to login mode
+                switchToLoginMode();
             } else {
                 String email = EmailField.getText().trim();
                 String password = PwordField.getText().trim();
@@ -62,7 +61,7 @@ public class Authenticate {
                 String username = login(email, password);
                 if (username != null) {
                     showAlert("✅ Login successful! Welcome, " + username);
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("chatbot.fxml")); 
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("chatbot.fxml"));
                     Parent chatbotRoot;
                     try {
                         chatbotRoot = loader.load();
@@ -73,7 +72,7 @@ public class Authenticate {
                     stage.setScene(new Scene(chatbotRoot));
                     stage.show();
                 } else {
-                    showAlert("❌ Login failed! Please check your credentials.");
+                    showAlert("❌ Login failed! Make a new account or try again.");
                 }
             }
         });
