@@ -253,14 +253,14 @@ public class ChatbotController {
 
     private void storeTask(String storyDescription, String taskDescription) {
         try {
-            String query = "SELECT id FROM chatbotdb.user_stories WHERE description = ?"; // Updated table name
+            String query = "SELECT id FROM chatbotdb.user_stories WHERE description = ?";
             try (PreparedStatement stmt = connection.prepareStatement(query)) {
                 stmt.setString(1, storyDescription);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         int storyId = rs.getInt("id");
 
-                        String insert = "INSERT INTO chatbotdb.tasks (story_id, description) VALUES (?, ?)"; // Updated table name
+                        String insert = "INSERT INTO chatbotdb.tasks (story_id, description) VALUES (?, ?)";
                         try (PreparedStatement insertStmt = connection.prepareStatement(insert)) {
                             insertStmt.setInt(1, storyId);
                             insertStmt.setString(2, taskDescription);
