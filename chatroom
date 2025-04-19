@@ -31,11 +31,16 @@ public class Chatroom{
     private Button showTrioButton;
 
     @FXML
+    private Button ClearButton;
+
+    @FXML
     private Button Switch2Button;
 
     private final String URL = "jdbc:mysql://localhost:3306/chatbotdb";
     private final String USER = "root";
     private final String PASSWORD = "24074209190344";
+
+    private boolean isRetrievingTrio = false;
 
     @FXML
     public void initialize() {
@@ -43,76 +48,14 @@ public class Chatroom{
         SendButton.setOnAction(e -> sendMessage());
         deleteMessageButton.setOnAction(e -> deleteAllMessages());
         showTrioButton.setOnAction(e -> handleShowTrio());
+        ClearButton.setOnAction(e -> chatArea.clear());
     }
 
     @FXML
     private void handleShowTrio() {
-        StringBuilder trioMessage = new StringBuilder();
-        String epicDesc = "";
-        String storyDesc = "";
-        String taskDesc = "";
-
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
-            String epicQuery = "SELECT * FROM chatbotdb.epics";
-            try (PreparedStatement epicStmt = conn.prepareStatement(epicQuery);
-                 ResultSet epics = epicStmt.executeQuery()) {
-
-                while (epics.next()) {
-                    int epicId = epics.getInt("id");
-                    epicDesc = epics.getString("description");
-                    trioMessage.append("📘 Epic: ").append(epicDesc).append("\n");
-
-                    String storyQuery = "SELECT * FROM chatbotdb.user_stories WHERE epic_id = ?";
-                    try (PreparedStatement storyStmt = conn.prepareStatement(storyQuery)) {
-                        storyStmt.setInt(1, epicId);
-                        try (ResultSet stories = storyStmt.executeQuery()) {
-                            while (stories.next()) {
-                                int storyId = stories.getInt("id");
-                                storyDesc = stories.getString("description");
-                                trioMessage.append("📗 User Story: ").append(storyDesc).append("\n");
-
-                                String taskQuery = "SELECT * FROM chatbotdb.tasks WHERE story_id = ?";
-                                try (PreparedStatement taskStmt = conn.prepareStatement(taskQuery)) {
-                                    taskStmt.setInt(1, storyId);
-                                    try (ResultSet tasks = taskStmt.executeQuery()) {
-                                        while (tasks.next()) {
-                                            taskDesc = tasks.getString("description");
-                                            trioMessage.append("📒 Task: ").append(taskDesc).append("\n");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    break; // Only show the first trio
-                }
-            }
-
-            // Insert the trio into chat
-            String insertChatSql = "INSERT INTO chat (message) VALUES (?)";
-            try (PreparedStatement insertChatStmt = conn.prepareStatement(insertChatSql)) {
-                insertChatStmt.setString(1, trioMessage.toString());
-                insertChatStmt.executeUpdate();
-            }
-
-            String insertTrioSql = "INSERT INTO epic_user_story_task_trios (epic_description, user_story_description, task_description) VALUES (?, ?, ?)";
-            try (PreparedStatement insertTrioStmt = conn.prepareStatement(insertTrioSql)) {
-                insertTrioStmt.setString(1, epicDesc);
-                insertTrioStmt.setString(2, storyDesc);
-                insertTrioStmt.setString(3, taskDesc);
-                insertTrioStmt.executeUpdate();
-            }
-
-        } catch (SQLException e) {
-            trioMessage.append("⚠️ Error loading trio: ").append(e.getMessage()).append("\n");
-            e.printStackTrace();
-        }
-
-        loadMessages();
+        chatArea.appendText("ℹ️ Enter the Trio ID and press send to display the trio.\n");
+        isRetrievingTrio = true;
     }
-
-
-
 
 
     @FXML
@@ -131,14 +74,58 @@ public class Chatroom{
     }
 
     private void sendMessage() {
-        String message = Input2Field.getText().trim();
+        String inputText = Input2Field.getText().trim();
+        if (inputText.isEmpty()) return;
 
-        if (message.isEmpty()) return;
+        if (isRetrievingTrio) {
+            int requestedId;
+            try {
+                requestedId = Integer.parseInt(inputText);
+            } catch (NumberFormatException e) {
+                chatArea.appendText("⚠️ Invalid ID format. Please enter a number.\n");
+                isRetrievingTrio = false;
+                return;
+            }
 
-        StringBuilder messageWithTrio = new StringBuilder();
+            StringBuilder trioMessage = new StringBuilder();
 
-        // Only append "You: " and the message when sending a normal message
-        messageWithTrio.append("You: ").append(message);
+            try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+                String query = "SELECT * FROM epic_user_story_task_trios WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setInt(1, requestedId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            String epicDesc = rs.getString("epic_description");
+                            String storyDesc = rs.getString("user_story_description");
+                            String taskDesc = rs.getString("task_description");
+
+                            trioMessage.append("📘 Epic: ").append(epicDesc).append("\n")
+                                    .append("📗 User Story: ").append(storyDesc).append("\n")
+                                    .append("📒 Task: ").append(taskDesc).append("\n");
+                        } else {
+                            trioMessage.append("⚠️ No trio found with ID ").append(requestedId).append(".\n");
+                        }
+                    }
+                }
+
+                String insertChatSql = "INSERT INTO chat (message) VALUES (?)";
+                try (PreparedStatement insertChatStmt = conn.prepareStatement(insertChatSql)) {
+                    insertChatStmt.setString(1, trioMessage.toString());
+                    insertChatStmt.executeUpdate();
+                }
+
+            } catch (SQLException e) {
+                chatArea.appendText("⚠️ Error retrieving trio: " + e.getMessage() + "\n");
+                e.printStackTrace();
+            }
+
+            isRetrievingTrio = false;
+            Input2Field.clear();
+            loadMessages();
+            return;
+        }
+
+        StringBuilder messageWithTrio = new StringBuilder("You: ").append(inputText);
 
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
             String sql = "INSERT INTO chat (message) VALUES (?)";
@@ -153,6 +140,7 @@ public class Chatroom{
         Input2Field.clear();
         loadMessages();
     }
+
 
 
     private void loadMessages() {
