@@ -48,6 +48,8 @@ public class ChatbotController {
     private String currentUserStory;
     private int currentStep = 0;
     private boolean isEpicCreationMode = false;
+    private boolean isDeleteMode = false;
+    private boolean isFullDeleteReady = false;
 
     @FXML
     public void initialize() {
@@ -113,10 +115,34 @@ public class ChatbotController {
     }
 
     @FXML
+    private void toggleDeleteMode() {
+        if (!isDeleteMode) {
+            isDeleteMode = true;
+            chatArea.appendText("🗑 [Delete Mode] Enter ID to delete a trio using Send Epic.\n");
+
+            sendButton.setDisable(true);
+            clearButton.setDisable(true);
+            epicButton.setDisable(true);
+            showEpicButton.setDisable(true);
+            returnButton.setDisable(false);
+            sendEpicButton.setDisable(false);
+        } else {
+            if (!isFullDeleteReady) {
+                isFullDeleteReady = true;
+                chatArea.appendText("⚠️ [Warning] Press ❌ again to delete EVERYTHING.\n");
+            } else {
+                handleDeleteAll();
+                isDeleteMode = false;
+                isFullDeleteReady = false;
+            }
+        }
+    }
+
+    @FXML
     private void startEpicCreation() {
         isEpicCreationMode = true;
         currentStep = 0;
-        chatArea.appendText("------Create an Epic.------\n");
+        chatArea.appendText("------Create an Epic------\n");
 
         sendButton.setDisable(true);
         clearButton.setDisable(true);
@@ -145,6 +171,27 @@ public class ChatbotController {
     @FXML
     private void sendEpic() {
         String input = userInput.getText().trim();
+
+        if (isDeleteMode) {
+            try {
+                int idToDelete = Integer.parseInt(input);
+                deleteTrioById(idToDelete);
+                chatArea.appendText("✅ Trio with ID " + idToDelete + " deleted.\n");
+            } catch (NumberFormatException e) {
+                chatArea.appendText("⚠️ Invalid ID. Please enter a valid number.\n");
+            }
+
+            userInput.clear();
+            isDeleteMode = false;
+
+            sendButton.setDisable(false);
+            clearButton.setDisable(false);
+            epicButton.setDisable(false);
+            showEpicButton.setDisable(false);
+            sendEpicButton.setDisable(true);
+            return;
+        }
+
         if (input.isEmpty()) {
             chatArea.appendText("------Create an Epic------\n");
             return;
@@ -181,14 +228,48 @@ public class ChatbotController {
         userInput.clear();
     }
 
+    private void deleteTrioById(int trioId) {
+        String deleteTrioQuery = "DELETE FROM epic_user_story_task_trios WHERE id = ?";
+
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/chatbotdb", "root", "24074209190344")) {
+            System.out.println("Connected to the database.");
+
+            try (PreparedStatement stmt = conn.prepareStatement(deleteTrioQuery)) {
+                stmt.setInt(1, trioId);
+                int rowsAffected = stmt.executeUpdate();
+                System.out.println("Deleted " + rowsAffected + " trio(s).");
+
+                if (rowsAffected > 0) {
+                    chatArea.appendText("✅ Trio with ID " + trioId + " deleted.\n");
+                } else {
+                    chatArea.appendText("⚠️ No trio found with ID " + trioId + ".\n");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+
 
     private void storeEpicUserStoryTask(String epic, String userStory, String task) {
         String query = "INSERT INTO epic_user_story_task_trios (epic_description, user_story_description, task_description) VALUES (?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (PreparedStatement stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, epic);
             stmt.setString(2, userStory);
             stmt.setString(3, task);
             stmt.executeUpdate();
+
+            ResultSet generatedKeys = stmt.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                int trioId = generatedKeys.getInt(1);
+                chatArea.appendText("🔢 Trio ID: " + trioId + "\n");
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -315,45 +396,29 @@ public class ChatbotController {
         StringBuilder output = new StringBuilder();
 
         try {
-            String epicQuery = "SELECT * FROM chatbotdb.epics";
-            try (PreparedStatement epicStmt = connection.prepareStatement(epicQuery);
-                 ResultSet epics = epicStmt.executeQuery()) {
+            String query = "SELECT * FROM chatbotdb.epic_user_story_task_trios";
+            try (PreparedStatement stmt = connection.prepareStatement(query);
+                 ResultSet rs = stmt.executeQuery()) {
 
-                while (epics.next()) {
-                    int epicId = epics.getInt("id");
-                    String epicDesc = epics.getString("description");
+                while (rs.next()) {
+                    int trioId = rs.getInt("id");
+                    String epicDescription = rs.getString("epic_description");
+                    String userStoryDescription = rs.getString("user_story_description");
+                    String taskDescription = rs.getString("task_description");
+
                     output.append("\n");
-                    output.append("📘 Epic: ").append(epicDesc).append("\n");
-
-                    String storyQuery = "SELECT * FROM chatbotdb.user_stories WHERE epic_id = ?";
-                    try (PreparedStatement storyStmt = connection.prepareStatement(storyQuery)) {
-                        storyStmt.setInt(1, epicId);
-                        try (ResultSet stories = storyStmt.executeQuery()) {
-                            while (stories.next()) {
-                                int storyId = stories.getInt("id");
-                                String storyDesc = stories.getString("description");
-                                output.append("📗 User Story: ").append(storyDesc).append("\n");
-
-                                String taskQuery = "SELECT * FROM chatbotdb.tasks WHERE story_id = ?";
-                                try (PreparedStatement taskStmt = connection.prepareStatement(taskQuery)) {
-                                    taskStmt.setInt(1, storyId);
-                                    try (ResultSet tasks = taskStmt.executeQuery()) {
-                                        while (tasks.next()) {
-                                            String taskDesc = tasks.getString("description");
-                                            output.append("📒 Task: ").append(taskDesc).append("\n");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    output.append("🔢 Trio ID: ").append(trioId).append("\n");
+                    output.append("📘 Epic: ").append(epicDescription).append("\n");
+                    output.append("📗 User Story: ").append(userStoryDescription).append("\n");
+                    output.append("📒 Task: ").append(taskDescription).append("\n");
                 }
-            }
-        } catch (SQLException e) {
-            output.append("⚠️ Error loading epics: ").append(e.getMessage()).append("\n");
-            e.printStackTrace();
-        }
 
-        chatArea.appendText(output.toString() + "\n");
+            }
+            chatArea.setText(output.toString());
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            chatArea.appendText("[Error displaying epics, user stories, and tasks.]\n");
+        }
     }
 }
