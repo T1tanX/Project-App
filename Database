@@ -4,6 +4,7 @@ USE chatbotdb;
 SHOW TABLES;
 SET SQL_SAFE_UPDATES = 0;
 
+SELECT * FROM epic_user_story_task_trios WHERE id = 31;
 SELECT emailadress, username, pword FROM chatbotdb.login;
 DELETE FROM login WHERE emailadress = 'lol';
 
